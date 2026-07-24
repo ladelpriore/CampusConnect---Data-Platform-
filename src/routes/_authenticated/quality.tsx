@@ -168,6 +168,40 @@ function Quality() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Quality snapshots</CardTitle>
+          <CardDescription>Point-in-time completeness and duplicate-rate captures — recorded on every scan and merge.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="max-h-72 overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground sticky top-0">
+                <tr>
+                  <th className="text-left px-4 py-2">When</th>
+                  <th className="text-left px-4 py-2">Trigger</th>
+                  <th className="text-right px-4 py-2">Completeness</th>
+                  <th className="text-right px-4 py-2">Duplicate rate</th>
+                  <th className="text-left px-4 py-2">Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(snapshots ?? []).length === 0 && <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">No snapshots yet — click "Re-scan" or resolve a duplicate to record one.</td></tr>}
+                {(snapshots ?? []).map((s) => (
+                  <tr key={s.id} className="border-t">
+                    <td className="px-4 py-2 text-xs text-muted-foreground">{new Date(s.created_at).toLocaleString()}</td>
+                    <td className="px-4 py-2"><span className="text-xs px-2 py-0.5 rounded-full border bg-muted">{s.trigger}</span></td>
+                    <td className="px-4 py-2 text-right font-medium text-success">{s.completeness_pct}%</td>
+                    <td className="px-4 py-2 text-right font-medium text-orange">{s.duplicate_rate_pct}%</td>
+                    <td className="px-4 py-2 text-xs text-muted-foreground">{s.note ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
       <MergeDialog pair={mergeCandidate} onClose={() => setMergeCandidate(null)} onMerge={doMerge} />
     </PageShell>
   );
