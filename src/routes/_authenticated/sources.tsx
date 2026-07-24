@@ -59,6 +59,17 @@ function Sources() {
 
   return (
     <PageShell title="Data Sources" subtitle="Manage integrations that feed CampusContext.">
+      <Card className="border-dashed border-orange/40 bg-orange/5">
+        <CardContent className="p-4 flex items-start gap-3 text-sm">
+          <Info className="h-4 w-4 text-orange mt-0.5 shrink-0" />
+          <div>
+            <div className="font-medium text-navy">Demo simulations</div>
+            <div className="text-muted-foreground text-xs mt-0.5">
+              The integrations below and their "Run sync" results are simulated for prototype purposes. No external SIS, CRM, or marketing platform is contacted; sync outcomes are generated locally and recorded to the audit log.
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {sources?.map((s) => {
           const Icon = ICONS[s.kind] ?? Database;
