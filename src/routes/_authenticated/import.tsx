@@ -47,6 +47,7 @@ function Importer() {
     if (!csv || !validation) return;
     setImporting(true);
     const valid = validation.records.filter((r) => r.ok);
+    const invalid = validation.records.filter((r) => !r.ok);
     const inserts = valid.map((r) => ({
       application_id: r.record.application_id ?? null,
       first_name: r.record.first_name ?? null,
@@ -67,15 +68,33 @@ function Importer() {
     const jobId = crypto.randomUUID();
     await supabase.from("import_jobs").insert({
       id: jobId, source_name: csv.fileName, kind: "csv", status: "completed",
-      records_total: csv.rows.length, records_valid: inserts.length, records_invalid: csv.rows.length - inserts.length,
+      records_total: csv.rows.length, records_valid: inserts.length, records_invalid: invalid.length,
     });
+
+    // Persist granular validation failures for every invalid row/field.
+    const errorRows = invalid.flatMap((r) =>
+      r.errors.map((e) => ({
+        import_job_id: jobId,
+        row_number: r.rowNumber,
+        field: e.field,
+        kind: e.kind,
+        message: e.message,
+        submitted_value: e.value ?? null,
+      })),
+    );
+    if (errorRows.length) {
+      await supabase.from("validation_errors").insert(errorRows as never);
+    }
+
     await logAudit({
       action: "csv.import", affected_record: csv.fileName, source: "csv",
       result: `${inserts.length}/${csv.rows.length} imported`,
-      metadata: { valid: inserts.length, invalid: csv.rows.length - inserts.length },
+      metadata: { valid: inserts.length, invalid: invalid.length, error_rows: errorRows.length },
     });
     await qc.invalidateQueries();
-    toast.success(`Imported ${inserts.length} applicants`);
+    toast.success(invalid.length
+      ? `Imported ${inserts.length} applicants — logged ${errorRows.length} validation issue${errorRows.length === 1 ? "" : "s"}`
+      : `Imported ${inserts.length} applicants`);
     setCsv(null); setMapping({});
     setImporting(false);
   }
