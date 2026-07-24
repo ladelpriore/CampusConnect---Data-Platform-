@@ -9,6 +9,7 @@ import { Sparkles, Send, ShieldCheck, User, Bot, PhoneCall } from "lucide-react"
 import { useState } from "react";
 import { logAudit, statusBadgeClass } from "@/lib/campus";
 import { toast } from "sonner";
+import { Markdown } from "@/components/markdown";
 
 export const Route = createFileRoute("/_authenticated/assistant")({
   head: () => ({ meta: [{ title: "Admissions Assistant — CampusContext" }, { name: "description", content: "Prototype AI admissions assistant using controlled tools over trusted applicant context." }] }),
