@@ -89,6 +89,8 @@ function Overview() {
       title="Overview"
       subtitle="Operational health of your admissions data platform."
     >
+      <GuidedDemoPanel />
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi icon={Database} label="Connected sources" value={data.sources.filter((s) => s.status === "connected").length} sub={`of ${data.sources.length} configured`} />
         <Kpi icon={Users} label="Records synchronized" value={totalProcessed.toLocaleString()} sub={`${apps.length} trusted profiles`} />
@@ -100,18 +102,27 @@ function Overview() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Records processed (last 7 days)</CardTitle>
-            <CardDescription>Aggregated across all configured integrations.</CardDescription>
+            <CardDescription>Aggregated from real import jobs and synchronization runs (last 7 days).</CardDescription>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trend}>
-                <CartesianGrid stroke="oklch(0.9 0.01 250)" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="day" tickLine={false} axisLine={false} fontSize={12} />
-                <YAxis tickLine={false} axisLine={false} fontSize={12} />
-                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid oklch(0.9 0.01 250)" }} />
-                <Line type="monotone" dataKey="records" stroke="oklch(0.24 0.06 265)" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+            {hasTrendData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trend}>
+                  <CartesianGrid stroke="oklch(0.9 0.01 250)" strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="day" tickLine={false} axisLine={false} fontSize={12} />
+                  <YAxis tickLine={false} axisLine={false} fontSize={12} />
+                  <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid oklch(0.9 0.01 250)" }} />
+                  <Line type="monotone" dataKey="records" stroke="oklch(0.24 0.06 265)" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full grid place-items-center text-center text-sm text-muted-foreground">
+                <div>
+                  <div className="font-medium text-navy">No processing activity yet</div>
+                  <div className="mt-1 max-w-xs">Trigger a sync on <span className="text-navy">Data Sources</span> or upload a CSV on <span className="text-navy">Import &amp; Mapping</span> to populate this chart from real jobs.</div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card>
