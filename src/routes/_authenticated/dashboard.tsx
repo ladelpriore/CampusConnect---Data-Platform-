@@ -19,12 +19,14 @@ function Overview() {
   const { data } = useQuery({
     queryKey: ["overview"],
     queryFn: async () => {
-      const [srcs, apps, jobs, dups, wf] = await Promise.all([
+      const sinceIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const [srcs, apps, jobs, dups, wf, jobs7] = await Promise.all([
         supabase.from("data_sources").select("*"),
         supabase.from("applicants").select("*").is("merged_into", null),
         supabase.from("import_jobs").select("*").order("created_at", { ascending: false }).limit(20),
         supabase.from("duplicate_matches").select("*").eq("resolved", false),
         supabase.from("workflow_executions").select("*"),
+        supabase.from("import_jobs").select("created_at,records_total,records_valid,records_invalid,kind").gte("created_at", sinceIso),
       ]);
       return {
         sources: srcs.data ?? [],
@@ -32,6 +34,7 @@ function Overview() {
         jobs: jobs.data ?? [],
         duplicates: dups.data ?? [],
         workflows: wf.data ?? [],
+        jobs7: jobs7.data ?? [],
       };
     },
   });
