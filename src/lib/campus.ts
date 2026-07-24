@@ -88,7 +88,7 @@ export async function logAudit(input: {
     affected_record: input.affected_record ?? null,
     source: input.source ?? null,
     result: input.result ?? null,
-    metadata: input.metadata ?? null,
+    metadata: (input.metadata ?? null) as never,
   });
 }
 
