@@ -230,3 +230,51 @@ function Kpi({ icon: Icon, label, value, sub, accent }: {
     </Card>
   );
 }
+
+const DEMO_STEPS = [
+  { to: "/sources", label: "Data Sources", desc: "See the simulated SIS/CRM/marketing integrations feeding the platform." },
+  { to: "/import", label: "Import & Mapping", desc: "Download the sample CSV, upload it, and map columns to canonical fields." },
+  { to: "/quality", label: "Data Quality", desc: "Scan for duplicates and merge two records into one trusted profile." },
+  { to: "/workflows", label: "Workflows", desc: "Edit the rule, save it, then test it against sample applicants." },
+  { to: "/assistant", label: "Admissions Assistant", desc: "Ask about a specific applicant and approve an escalation." },
+  { to: "/audit", label: "Audit Log", desc: "Confirm every action above was written to the trust ledger." },
+] as const;
+
+function GuidedDemoPanel() {
+  return (
+    <Card className="border-navy/20 bg-navy/[0.03]">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-md bg-navy grid place-items-center text-navy-foreground">
+            <MapPin className="h-4 w-4" />
+          </div>
+          <div>
+            <CardTitle className="text-base">Guided demo</CardTitle>
+            <CardDescription>Recommended walkthrough for reviewers — follow the numbered order.</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <ol className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {DEMO_STEPS.map((s, i) => (
+            <li key={s.to}>
+              <Link
+                to={s.to}
+                className="group flex items-start gap-3 rounded-md border bg-background p-3 hover:border-orange/50 hover:bg-orange/5 transition-colors"
+              >
+                <span className="h-6 w-6 shrink-0 rounded-full bg-orange text-orange-foreground text-xs font-semibold grid place-items-center">{i + 1}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-navy flex items-center gap-1">
+                    {s.label}
+                    <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{s.desc}</div>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </CardContent>
+    </Card>
+  );
+}
