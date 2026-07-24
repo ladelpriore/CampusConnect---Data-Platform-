@@ -91,6 +91,9 @@ function Sources() {
                       : "bg-destructive/15 text-destructive border-destructive/30")
                   }>{s.status}</span>
                 </div>
+                <div className="mt-2">
+                  <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border border-orange/30 bg-orange/10 text-orange font-semibold">Demo simulation</span>
+                </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <Row label="Last sync" value={timeAgo(s.last_sync_at)} />
