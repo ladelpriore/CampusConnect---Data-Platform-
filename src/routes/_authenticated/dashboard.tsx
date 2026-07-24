@@ -68,11 +68,19 @@ function Overview() {
 
   const errorsBySource = data.sources.map((s) => ({ name: s.name, errors: s.failed_records ?? 0 }));
 
-  // Records processed over time — synthesize from sources for demo (deterministic weekly trend)
-  const trend = Array.from({ length: 7 }, (_, i) => {
-    const base = totalProcessed / 7;
-    return { day: `D-${6 - i}`, records: Math.round(base * (0.7 + ((i * 37) % 100) / 200)) };
+  // Records processed over time — aggregated from real import_jobs (imports + syncs) over the last 7 days.
+  const dayBuckets: { day: string; records: number; iso: string }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+    dayBuckets.push({ day: d.toLocaleDateString(undefined, { weekday: "short" }), records: 0, iso: d.toISOString().slice(0, 10) });
+  }
+  data.jobs7.forEach((j) => {
+    const key = new Date(j.created_at).toISOString().slice(0, 10);
+    const b = dayBuckets.find((x) => x.iso === key);
+    if (b) b.records += j.records_total ?? 0;
   });
+  const trend = dayBuckets;
+  const hasTrendData = trend.some((t) => t.records > 0);
 
   const COLORS = ["oklch(0.24 0.06 265)", "oklch(0.68 0.17 45)", "oklch(0.62 0.14 200)", "oklch(0.62 0.14 155)", "oklch(0.55 0.15 300)", "oklch(0.5 0.02 260)"];
 
