@@ -173,7 +173,7 @@ function Importer() {
                         <td className="px-3 py-2">
                           {r.ok
                             ? <span className="text-success text-xs">✓ valid</span>
-                            : <span className="text-destructive text-xs" title={r.errors.join(", ")}>✗ {r.errors[0]}</span>}
+                            : <span className="text-destructive text-xs" title={r.errors.map((e) => e.message).join(", ")}>✗ {r.errors[0].message}</span>}
                         </td>
                         {CANONICAL_FIELDS.map((f) => (
                           <td key={f} className="px-3 py-2 whitespace-nowrap max-w-[180px] truncate">{String(r.record[f] ?? "")}</td>
