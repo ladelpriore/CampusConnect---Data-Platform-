@@ -101,8 +101,8 @@ function Assistant() {
                 <div className={"h-7 w-7 rounded-md grid place-items-center shrink-0 " + (m.role === "user" ? "bg-muted text-foreground" : "bg-navy text-navy-foreground")}>
                   {m.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                 </div>
-                <div className={"max-w-[80%] rounded-lg px-3.5 py-2.5 text-sm whitespace-pre-wrap " + (m.role === "user" ? "bg-navy text-navy-foreground" : "bg-muted")}>
-                  {m.content}
+                <div className={"max-w-[80%] rounded-lg px-3.5 py-2.5 text-sm " + (m.role === "user" ? "bg-navy text-navy-foreground whitespace-pre-wrap" : "bg-muted")}>
+                  {m.role === "assistant" ? <Markdown>{m.content}</Markdown> : m.content}
                   {m.tool && (
                     <div className="mt-2 text-xs text-muted-foreground border-t border-border pt-2 flex items-center gap-1.5">
                       <ShieldCheck className="h-3 w-3 text-success" /> Tool: <code className="font-mono">{m.tool}</code>
