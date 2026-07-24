@@ -47,6 +47,7 @@ function Importer() {
     if (!csv || !validation) return;
     setImporting(true);
     const valid = validation.records.filter((r) => r.ok);
+    const invalid = validation.records.filter((r) => !r.ok);
     const inserts = valid.map((r) => ({
       application_id: r.record.application_id ?? null,
       first_name: r.record.first_name ?? null,
@@ -67,15 +68,33 @@ function Importer() {
     const jobId = crypto.randomUUID();
     await supabase.from("import_jobs").insert({
       id: jobId, source_name: csv.fileName, kind: "csv", status: "completed",
-      records_total: csv.rows.length, records_valid: inserts.length, records_invalid: csv.rows.length - inserts.length,
+      records_total: csv.rows.length, records_valid: inserts.length, records_invalid: invalid.length,
     });
+
+    // Persist granular validation failures for every invalid row/field.
+    const errorRows = invalid.flatMap((r) =>
+      r.errors.map((e) => ({
+        import_job_id: jobId,
+        row_number: r.rowNumber,
+        field: e.field,
+        kind: e.kind,
+        message: e.message,
+        submitted_value: e.value ?? null,
+      })),
+    );
+    if (errorRows.length) {
+      await supabase.from("validation_errors").insert(errorRows as never);
+    }
+
     await logAudit({
       action: "csv.import", affected_record: csv.fileName, source: "csv",
       result: `${inserts.length}/${csv.rows.length} imported`,
-      metadata: { valid: inserts.length, invalid: csv.rows.length - inserts.length },
+      metadata: { valid: inserts.length, invalid: invalid.length, error_rows: errorRows.length },
     });
     await qc.invalidateQueries();
-    toast.success(`Imported ${inserts.length} applicants`);
+    toast.success(invalid.length
+      ? `Imported ${inserts.length} applicants — logged ${errorRows.length} validation issue${errorRows.length === 1 ? "" : "s"}`
+      : `Imported ${inserts.length} applicants`);
     setCsv(null); setMapping({});
     setImporting(false);
   }
@@ -154,7 +173,7 @@ function Importer() {
                         <td className="px-3 py-2">
                           {r.ok
                             ? <span className="text-success text-xs">✓ valid</span>
-                            : <span className="text-destructive text-xs" title={r.errors.join(", ")}>✗ {r.errors[0]}</span>}
+                            : <span className="text-destructive text-xs" title={r.errors.map((e) => e.message).join(", ")}>✗ {r.errors[0].message}</span>}
                         </td>
                         {CANONICAL_FIELDS.map((f) => (
                           <td key={f} className="px-3 py-2 whitespace-nowrap max-w-[180px] truncate">{String(r.record[f] ?? "")}</td>
@@ -191,18 +210,24 @@ function StatCard({ label, value, accent, icon: Icon }: { label: string; value: 
   );
 }
 
+type FieldError = { field: string; kind: string; message: string; value: string | null };
+
 function validateRows(rows: string[][], headers: string[], mapping: Record<string, CanonicalField | "">) {
   const required: CanonicalField[] = ["application_id", "first_name", "last_name", "application_status"];
-  const records = rows.map((row) => {
+  const records = rows.map((row, idx) => {
     const rec: Record<string, string | undefined> = {};
     headers.forEach((h, i) => {
       const f = mapping[h];
       if (f) rec[f] = (row[i] ?? "").trim() || undefined;
     });
-    const errors: string[] = [];
-    required.forEach((r) => { if (!rec[r]) errors.push(`missing ${r}`); });
-    if (rec.email && !isValidEmail(rec.email)) errors.push("invalid email");
-    return { record: rec, ok: errors.length === 0, errors };
+    const errors: FieldError[] = [];
+    required.forEach((r) => {
+      if (!rec[r]) errors.push({ field: r, kind: "missing_required", message: `missing ${r}`, value: null });
+    });
+    if (rec.email && !isValidEmail(rec.email)) {
+      errors.push({ field: "email", kind: "invalid_format", message: "invalid email", value: rec.email });
+    }
+    return { record: rec, ok: errors.length === 0, errors, rowNumber: idx + 2 }; // +2 for header + 1-index
   });
   return { records };
 }

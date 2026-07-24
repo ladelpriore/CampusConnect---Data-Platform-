@@ -220,30 +220,69 @@ export type Database = {
           },
         ]
       }
+      quality_snapshots: {
+        Row: {
+          completeness_pct: number
+          created_at: string
+          duplicate_rate_pct: number
+          id: string
+          note: string | null
+          trigger: string
+        }
+        Insert: {
+          completeness_pct: number
+          created_at?: string
+          duplicate_rate_pct: number
+          id?: string
+          note?: string | null
+          trigger: string
+        }
+        Update: {
+          completeness_pct?: number
+          created_at?: string
+          duplicate_rate_pct?: number
+          id?: string
+          note?: string | null
+          trigger?: string
+        }
+        Relationships: []
+      }
       validation_errors: {
         Row: {
           applicant_id: string | null
           created_at: string
+          field: string | null
           id: string
+          import_job_id: string | null
           kind: string
           message: string | null
           resolved: boolean
+          row_number: number | null
+          submitted_value: string | null
         }
         Insert: {
           applicant_id?: string | null
           created_at?: string
+          field?: string | null
           id?: string
+          import_job_id?: string | null
           kind: string
           message?: string | null
           resolved?: boolean
+          row_number?: number | null
+          submitted_value?: string | null
         }
         Update: {
           applicant_id?: string | null
           created_at?: string
+          field?: string | null
           id?: string
+          import_job_id?: string | null
           kind?: string
           message?: string | null
           resolved?: boolean
+          row_number?: number | null
+          submitted_value?: string | null
         }
         Relationships: [
           {

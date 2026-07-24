@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import {
-  Activity, CheckCircle2, AlertTriangle, Users, Database, RefreshCcw, GitBranch,
+  Activity, CheckCircle2, AlertTriangle, Users, Database, RefreshCcw, GitBranch, ChevronRight, MapPin,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, CartesianGrid,
@@ -19,12 +19,14 @@ function Overview() {
   const { data } = useQuery({
     queryKey: ["overview"],
     queryFn: async () => {
-      const [srcs, apps, jobs, dups, wf] = await Promise.all([
+      const sinceIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const [srcs, apps, jobs, dups, wf, jobs7] = await Promise.all([
         supabase.from("data_sources").select("*"),
         supabase.from("applicants").select("*").is("merged_into", null),
         supabase.from("import_jobs").select("*").order("created_at", { ascending: false }).limit(20),
         supabase.from("duplicate_matches").select("*").eq("resolved", false),
         supabase.from("workflow_executions").select("*"),
+        supabase.from("import_jobs").select("created_at,records_total,records_valid,records_invalid,kind").gte("created_at", sinceIso),
       ]);
       return {
         sources: srcs.data ?? [],
@@ -32,6 +34,7 @@ function Overview() {
         jobs: jobs.data ?? [],
         duplicates: dups.data ?? [],
         workflows: wf.data ?? [],
+        jobs7: jobs7.data ?? [],
       };
     },
   });
@@ -65,11 +68,19 @@ function Overview() {
 
   const errorsBySource = data.sources.map((s) => ({ name: s.name, errors: s.failed_records ?? 0 }));
 
-  // Records processed over time — synthesize from sources for demo (deterministic weekly trend)
-  const trend = Array.from({ length: 7 }, (_, i) => {
-    const base = totalProcessed / 7;
-    return { day: `D-${6 - i}`, records: Math.round(base * (0.7 + ((i * 37) % 100) / 200)) };
+  // Records processed over time — aggregated from real import_jobs (imports + syncs) over the last 7 days.
+  const dayBuckets: { day: string; records: number; iso: string }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+    dayBuckets.push({ day: d.toLocaleDateString(undefined, { weekday: "short" }), records: 0, iso: d.toISOString().slice(0, 10) });
+  }
+  data.jobs7.forEach((j) => {
+    const key = new Date(j.created_at).toISOString().slice(0, 10);
+    const b = dayBuckets.find((x) => x.iso === key);
+    if (b) b.records += j.records_total ?? 0;
   });
+  const trend = dayBuckets;
+  const hasTrendData = trend.some((t) => t.records > 0);
 
   const COLORS = ["oklch(0.24 0.06 265)", "oklch(0.68 0.17 45)", "oklch(0.62 0.14 200)", "oklch(0.62 0.14 155)", "oklch(0.55 0.15 300)", "oklch(0.5 0.02 260)"];
 
@@ -78,6 +89,8 @@ function Overview() {
       title="Overview"
       subtitle="Operational health of your admissions data platform."
     >
+      <GuidedDemoPanel />
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi icon={Database} label="Connected sources" value={data.sources.filter((s) => s.status === "connected").length} sub={`of ${data.sources.length} configured`} />
         <Kpi icon={Users} label="Records synchronized" value={totalProcessed.toLocaleString()} sub={`${apps.length} trusted profiles`} />
@@ -89,18 +102,27 @@ function Overview() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Records processed (last 7 days)</CardTitle>
-            <CardDescription>Aggregated across all configured integrations.</CardDescription>
+            <CardDescription>Aggregated from real import jobs and synchronization runs (last 7 days).</CardDescription>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trend}>
-                <CartesianGrid stroke="oklch(0.9 0.01 250)" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="day" tickLine={false} axisLine={false} fontSize={12} />
-                <YAxis tickLine={false} axisLine={false} fontSize={12} />
-                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid oklch(0.9 0.01 250)" }} />
-                <Line type="monotone" dataKey="records" stroke="oklch(0.24 0.06 265)" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+            {hasTrendData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trend}>
+                  <CartesianGrid stroke="oklch(0.9 0.01 250)" strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="day" tickLine={false} axisLine={false} fontSize={12} />
+                  <YAxis tickLine={false} axisLine={false} fontSize={12} />
+                  <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid oklch(0.9 0.01 250)" }} />
+                  <Line type="monotone" dataKey="records" stroke="oklch(0.24 0.06 265)" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full grid place-items-center text-center text-sm text-muted-foreground">
+                <div>
+                  <div className="font-medium text-navy">No processing activity yet</div>
+                  <div className="mt-1 max-w-xs">Trigger a sync on <span className="text-navy">Data Sources</span> or upload a CSV on <span className="text-navy">Import &amp; Mapping</span> to populate this chart from real jobs.</div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -204,6 +226,54 @@ function Kpi({ icon: Icon, label, value, sub, accent }: {
         </div>
         <div className={"mt-2 text-2xl font-semibold " + color}>{value}</div>
         {sub && <div className="mt-1 text-xs text-muted-foreground">{sub}</div>}
+      </CardContent>
+    </Card>
+  );
+}
+
+const DEMO_STEPS = [
+  { to: "/sources", label: "Data Sources", desc: "See the simulated SIS/CRM/marketing integrations feeding the platform." },
+  { to: "/import", label: "Import & Mapping", desc: "Download the sample CSV, upload it, and map columns to canonical fields." },
+  { to: "/quality", label: "Data Quality", desc: "Scan for duplicates and merge two records into one trusted profile." },
+  { to: "/workflows", label: "Workflows", desc: "Edit the rule, save it, then test it against sample applicants." },
+  { to: "/assistant", label: "Admissions Assistant", desc: "Ask about a specific applicant and approve an escalation." },
+  { to: "/audit", label: "Audit Log", desc: "Confirm every action above was written to the trust ledger." },
+] as const;
+
+function GuidedDemoPanel() {
+  return (
+    <Card className="border-navy/20 bg-navy/[0.03]">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-md bg-navy grid place-items-center text-navy-foreground">
+            <MapPin className="h-4 w-4" />
+          </div>
+          <div>
+            <CardTitle className="text-base">Guided demo</CardTitle>
+            <CardDescription>Recommended walkthrough for reviewers — follow the numbered order.</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <ol className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {DEMO_STEPS.map((s, i) => (
+            <li key={s.to}>
+              <Link
+                to={s.to}
+                className="group flex items-start gap-3 rounded-md border bg-background p-3 hover:border-orange/50 hover:bg-orange/5 transition-colors"
+              >
+                <span className="h-6 w-6 shrink-0 rounded-full bg-orange text-orange-foreground text-xs font-semibold grid place-items-center">{i + 1}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-navy flex items-center gap-1">
+                    {s.label}
+                    <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{s.desc}</div>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ol>
       </CardContent>
     </Card>
   );

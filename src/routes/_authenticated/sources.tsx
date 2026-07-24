@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "./dashboard";
-import { Database, RefreshCcw, ChevronRight, Server, Megaphone } from "lucide-react";
+import { Database, RefreshCcw, ChevronRight, Server, Megaphone, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { timeAgo, logAudit } from "@/lib/campus";
@@ -59,6 +59,17 @@ function Sources() {
 
   return (
     <PageShell title="Data Sources" subtitle="Manage integrations that feed CampusContext.">
+      <Card className="border-dashed border-orange/40 bg-orange/5">
+        <CardContent className="p-4 flex items-start gap-3 text-sm">
+          <Info className="h-4 w-4 text-orange mt-0.5 shrink-0" />
+          <div>
+            <div className="font-medium text-navy">Demo simulations</div>
+            <div className="text-muted-foreground text-xs mt-0.5">
+              The integrations below and their "Run sync" results are simulated for prototype purposes. No external SIS, CRM, or marketing platform is contacted; sync outcomes are generated locally and recorded to the audit log.
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {sources?.map((s) => {
           const Icon = ICONS[s.kind] ?? Database;
@@ -79,6 +90,9 @@ function Sources() {
                       : s.status === "degraded" ? "bg-warning/15 text-warning-foreground border-warning/40"
                       : "bg-destructive/15 text-destructive border-destructive/30")
                   }>{s.status}</span>
+                </div>
+                <div className="mt-2">
+                  <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border border-orange/30 bg-orange/10 text-orange font-semibold">Demo simulation</span>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">

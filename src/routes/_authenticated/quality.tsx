@@ -23,14 +23,23 @@ function Quality() {
     queryKey: ["quality-applicants"],
     queryFn: async () => (await supabase.from("applicants").select("*").is("merged_into", null)).data as Applicant[] ?? [],
   });
+  const { data: snapshots } = useQuery({
+    queryKey: ["quality-snapshots"],
+    queryFn: async () => (await supabase.from("quality_snapshots").select("*").order("taken_at", { ascending: false }).limit(10)).data ?? [],
+  });
   const [mergeCandidate, setMergeCandidate] = useState<[Applicant, Applicant] | null>(null);
-  const [beforeStats, setBeforeStats] = useState<{ completeness: number; dupRate: number } | null>(null);
 
   const analysis = useMemo(() => analyze(applicants ?? []), [applicants]);
+  const previous = snapshots?.[0];
 
-  // capture "before" once
-  if (applicants && !beforeStats) {
-    setBeforeStats({ completeness: analysis.completeness, dupRate: analysis.dupRate });
+  async function saveSnapshot(trigger: string, note?: string, override?: { completeness: number; dupRate: number }) {
+    const src = override ?? { completeness: analysis.completeness, dupRate: analysis.dupRate };
+    await supabase.from("quality_snapshots").insert({
+      trigger,
+      note: note ?? null,
+      completeness_pct: Math.round(src.completeness),
+      duplicate_rate_pct: Math.round(src.dupRate),
+    });
   }
 
   async function scanNow() {
@@ -41,6 +50,7 @@ function Quality() {
       inserts.push({ applicant_a: dupe.a.id, applicant_b: dupe.b.id, reason: dupe.reason });
     }
     if (inserts.length) await supabase.from("duplicate_matches").insert(inserts);
+    await saveSnapshot("manual_scan");
     await logAudit({ action: "quality.scan", result: `${inserts.length} duplicate pairs detected` });
     await qc.invalidateQueries();
     toast.success(`Scan complete — ${inserts.length} duplicate pairs, ${analysis.issues.length} data issues`);
@@ -60,6 +70,7 @@ function Quality() {
       source_campaign: chosen.source_campaign as string | null,
       missing_documents: chosen.missing_documents as string[],
     };
+    await saveSnapshot("pre_merge");
     await supabase.from("applicants").update(patch).eq("id", keep.id);
     await supabase.from("applicants").update({ merged_into: keep.id }).eq("id", drop.id);
     await supabase.from("duplicate_matches").update({ resolved: true })
@@ -70,8 +81,13 @@ function Quality() {
       result: `merged ${drop.application_id ?? drop.id} → ${keep.application_id ?? keep.id}`,
     });
     setMergeCandidate(null);
-    await refetch(); await qc.invalidateQueries();
-    toast.success("Applicants merged into a trusted profile");
+    await refetch();
+    // Recompute after refetch and record post-merge snapshot
+    const { data: fresh } = await supabase.from("applicants").select("*").is("merged_into", null);
+    const post = analyze((fresh as Applicant[]) ?? []);
+    await saveSnapshot("post_merge", `merged ${drop.application_id ?? drop.id} → ${keep.application_id ?? keep.id}`, { completeness: post.completeness, dupRate: post.dupRate });
+    await qc.invalidateQueries();
+    toast.success("Applicants merged — quality snapshot recorded");
   }
 
   const list = applicants ?? [];
@@ -83,8 +99,8 @@ function Quality() {
       actions={<Button onClick={scanNow} variant="outline"><RefreshCcw className="h-4 w-4 mr-2" />Re-scan</Button>}
     >
       <div className="grid gap-4 md:grid-cols-4">
-        <Metric label="Completeness (now)" value={`${analysis.completeness}%`} sub={beforeStats ? `before: ${beforeStats.completeness}%` : undefined} icon={ShieldCheck} accent="success" />
-        <Metric label="Duplicate rate" value={`${analysis.dupRate}%`} sub={beforeStats ? `before: ${beforeStats.dupRate}%` : undefined} icon={Merge} accent="warning" />
+        <Metric label="Completeness (now)" value={`${analysis.completeness}%`} sub={previous ? `previous snapshot: ${previous.completeness_pct}%` : "no prior snapshot"} icon={ShieldCheck} accent="success" />
+        <Metric label="Duplicate rate" value={`${analysis.dupRate}%`} sub={previous ? `previous snapshot: ${previous.duplicate_rate_pct}%` : "no prior snapshot"} icon={Merge} accent="warning" />
         <Metric label="Open issues" value={analysis.issues.length} icon={AlertTriangle} />
         <Metric label="Trusted profiles" value={list.length} icon={ShieldCheck} accent="success" />
       </div>
@@ -144,6 +160,40 @@ function Quality() {
                     <td className="px-4 py-2 font-mono text-xs">{iss.applicant.application_id ?? "—"}</td>
                     <td className="px-4 py-2"><span className={"text-xs px-2 py-0.5 rounded-full border " + statusBadgeClass(iss.applicant.application_status)}>{iss.applicant.application_status ?? "—"}</span></td>
                     <td className="px-4 py-2 text-xs text-muted-foreground">{iss.applicant.source}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Quality snapshots</CardTitle>
+          <CardDescription>Point-in-time completeness and duplicate-rate captures — recorded on every scan and merge.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="max-h-72 overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground sticky top-0">
+                <tr>
+                  <th className="text-left px-4 py-2">When</th>
+                  <th className="text-left px-4 py-2">Trigger</th>
+                  <th className="text-right px-4 py-2">Completeness</th>
+                  <th className="text-right px-4 py-2">Duplicate rate</th>
+                  <th className="text-left px-4 py-2">Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(snapshots ?? []).length === 0 && <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">No snapshots yet — click "Re-scan" or resolve a duplicate to record one.</td></tr>}
+                {(snapshots ?? []).map((s) => (
+                  <tr key={s.id} className="border-t">
+                    <td className="px-4 py-2 text-xs text-muted-foreground">{new Date(s.created_at).toLocaleString()}</td>
+                    <td className="px-4 py-2"><span className="text-xs px-2 py-0.5 rounded-full border bg-muted">{s.trigger}</span></td>
+                    <td className="px-4 py-2 text-right font-medium text-success">{s.completeness_pct}%</td>
+                    <td className="px-4 py-2 text-right font-medium text-orange">{s.duplicate_rate_pct}%</td>
+                    <td className="px-4 py-2 text-xs text-muted-foreground">{s.note ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>
