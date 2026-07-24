@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "./dashboard";
-import { Database, RefreshCcw, ChevronRight, Server, Megaphone } from "lucide-react";
+import { Database, RefreshCcw, ChevronRight, Server, Megaphone, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { timeAgo, logAudit } from "@/lib/campus";
