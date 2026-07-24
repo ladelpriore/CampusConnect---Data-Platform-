@@ -32,14 +32,13 @@ function Quality() {
   const analysis = useMemo(() => analyze(applicants ?? []), [applicants]);
   const previous = snapshots?.[0];
 
-  async function saveSnapshot(reason: string) {
+  async function saveSnapshot(trigger: string, note?: string, override?: { completeness: number; dupRate: number }) {
+    const src = override ?? { completeness: analysis.completeness, dupRate: analysis.dupRate };
     await supabase.from("quality_snapshots").insert({
-      reason,
-      total_profiles: (applicants ?? []).length,
-      complete_profiles: analysis.completeProfiles,
-      completeness_pct: analysis.completeness,
-      duplicate_pairs: analysis.duplicates.length,
-      duplicate_rate_pct: analysis.dupRate,
+      trigger,
+      note: note ?? null,
+      completeness_pct: Math.round(src.completeness),
+      duplicate_rate_pct: Math.round(src.dupRate),
     });
   }
 
