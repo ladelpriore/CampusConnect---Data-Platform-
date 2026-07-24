@@ -210,18 +210,24 @@ function StatCard({ label, value, accent, icon: Icon }: { label: string; value: 
   );
 }
 
+type FieldError = { field: string; kind: string; message: string; value: string | null };
+
 function validateRows(rows: string[][], headers: string[], mapping: Record<string, CanonicalField | "">) {
   const required: CanonicalField[] = ["application_id", "first_name", "last_name", "application_status"];
-  const records = rows.map((row) => {
+  const records = rows.map((row, idx) => {
     const rec: Record<string, string | undefined> = {};
     headers.forEach((h, i) => {
       const f = mapping[h];
       if (f) rec[f] = (row[i] ?? "").trim() || undefined;
     });
-    const errors: string[] = [];
-    required.forEach((r) => { if (!rec[r]) errors.push(`missing ${r}`); });
-    if (rec.email && !isValidEmail(rec.email)) errors.push("invalid email");
-    return { record: rec, ok: errors.length === 0, errors };
+    const errors: FieldError[] = [];
+    required.forEach((r) => {
+      if (!rec[r]) errors.push({ field: r, kind: "missing_required", message: `missing ${r}`, value: null });
+    });
+    if (rec.email && !isValidEmail(rec.email)) {
+      errors.push({ field: "email", kind: "invalid_format", message: "invalid email", value: rec.email });
+    }
+    return { record: rec, ok: errors.length === 0, errors, rowNumber: idx + 2 }; // +2 for header + 1-index
   });
   return { records };
 }
