@@ -23,14 +23,24 @@ function Quality() {
     queryKey: ["quality-applicants"],
     queryFn: async () => (await supabase.from("applicants").select("*").is("merged_into", null)).data as Applicant[] ?? [],
   });
+  const { data: snapshots } = useQuery({
+    queryKey: ["quality-snapshots"],
+    queryFn: async () => (await supabase.from("quality_snapshots").select("*").order("taken_at", { ascending: false }).limit(10)).data ?? [],
+  });
   const [mergeCandidate, setMergeCandidate] = useState<[Applicant, Applicant] | null>(null);
-  const [beforeStats, setBeforeStats] = useState<{ completeness: number; dupRate: number } | null>(null);
 
   const analysis = useMemo(() => analyze(applicants ?? []), [applicants]);
+  const previous = snapshots?.[0];
 
-  // capture "before" once
-  if (applicants && !beforeStats) {
-    setBeforeStats({ completeness: analysis.completeness, dupRate: analysis.dupRate });
+  async function saveSnapshot(reason: string) {
+    await supabase.from("quality_snapshots").insert({
+      reason,
+      total_profiles: (applicants ?? []).length,
+      complete_profiles: analysis.completeProfiles,
+      completeness_pct: analysis.completeness,
+      duplicate_pairs: analysis.duplicates.length,
+      duplicate_rate_pct: analysis.dupRate,
+    });
   }
 
   async function scanNow() {
@@ -41,6 +51,7 @@ function Quality() {
       inserts.push({ applicant_a: dupe.a.id, applicant_b: dupe.b.id, reason: dupe.reason });
     }
     if (inserts.length) await supabase.from("duplicate_matches").insert(inserts);
+    await saveSnapshot("manual_scan");
     await logAudit({ action: "quality.scan", result: `${inserts.length} duplicate pairs detected` });
     await qc.invalidateQueries();
     toast.success(`Scan complete — ${inserts.length} duplicate pairs, ${analysis.issues.length} data issues`);
@@ -60,6 +71,7 @@ function Quality() {
       source_campaign: chosen.source_campaign as string | null,
       missing_documents: chosen.missing_documents as string[],
     };
+    await saveSnapshot("pre_merge");
     await supabase.from("applicants").update(patch).eq("id", keep.id);
     await supabase.from("applicants").update({ merged_into: keep.id }).eq("id", drop.id);
     await supabase.from("duplicate_matches").update({ resolved: true })
@@ -70,8 +82,20 @@ function Quality() {
       result: `merged ${drop.application_id ?? drop.id} → ${keep.application_id ?? keep.id}`,
     });
     setMergeCandidate(null);
-    await refetch(); await qc.invalidateQueries();
-    toast.success("Applicants merged into a trusted profile");
+    await refetch();
+    // Recompute after refetch and record post-merge snapshot
+    const { data: fresh } = await supabase.from("applicants").select("*").is("merged_into", null);
+    const post = analyze((fresh as Applicant[]) ?? []);
+    await supabase.from("quality_snapshots").insert({
+      reason: "post_merge",
+      total_profiles: (fresh ?? []).length,
+      complete_profiles: post.completeProfiles,
+      completeness_pct: post.completeness,
+      duplicate_pairs: post.duplicates.length,
+      duplicate_rate_pct: post.dupRate,
+    });
+    await qc.invalidateQueries();
+    toast.success("Applicants merged — quality snapshot recorded");
   }
 
   const list = applicants ?? [];
