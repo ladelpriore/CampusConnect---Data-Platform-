@@ -99,8 +99,8 @@ function Quality() {
       actions={<Button onClick={scanNow} variant="outline"><RefreshCcw className="h-4 w-4 mr-2" />Re-scan</Button>}
     >
       <div className="grid gap-4 md:grid-cols-4">
-        <Metric label="Completeness (now)" value={`${analysis.completeness}%`} sub={beforeStats ? `before: ${beforeStats.completeness}%` : undefined} icon={ShieldCheck} accent="success" />
-        <Metric label="Duplicate rate" value={`${analysis.dupRate}%`} sub={beforeStats ? `before: ${beforeStats.dupRate}%` : undefined} icon={Merge} accent="warning" />
+        <Metric label="Completeness (now)" value={`${analysis.completeness}%`} sub={previous ? `previous snapshot: ${previous.completeness_pct}%` : "no prior snapshot"} icon={ShieldCheck} accent="success" />
+        <Metric label="Duplicate rate" value={`${analysis.dupRate}%`} sub={previous ? `previous snapshot: ${previous.duplicate_rate_pct}%` : "no prior snapshot"} icon={Merge} accent="warning" />
         <Metric label="Open issues" value={analysis.issues.length} icon={AlertTriangle} />
         <Metric label="Trusted profiles" value={list.length} icon={ShieldCheck} accent="success" />
       </div>
