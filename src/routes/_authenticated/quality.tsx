@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/quality")({
 
 type Applicant = { id: string; application_id: string | null; first_name: string | null; last_name: string | null; email: string | null; normalized_email: string | null; application_status: string | null; enrollment_term: string | null; source_campaign: string | null; missing_documents: string[] | null; source: string | null; merged_into: string | null };
 
-function Quality() {
+export function Quality() {
   const qc = useQueryClient();
   const { data: applicants, refetch } = useQuery({
     queryKey: ["quality-applicants"],
