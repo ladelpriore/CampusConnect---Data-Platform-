@@ -33,7 +33,7 @@ const NOTIFY_OPTIONS = [
   { value: "none", label: "No notification" },
 ];
 
-function Workflows() {
+export function Workflows() {
   const qc = useQueryClient();
   const { data } = useQuery({
     queryKey: ["workflows"],
