@@ -25,7 +25,11 @@ export function Quality() {
   });
   const { data: snapshots } = useQuery({
     queryKey: ["quality-snapshots"],
-    queryFn: async () => (await supabase.from("quality_snapshots").select("*").order("taken_at", { ascending: false }).limit(10)).data ?? [],
+    queryFn: async () => (await supabase.from("quality_snapshots").select("*").order("created_at", { ascending: false }).limit(10)).data ?? [],
+  });
+  const { data: validationErrors } = useQuery({
+    queryKey: ["quality-validation-errors"],
+    queryFn: async () => (await supabase.from("validation_errors").select("id, kind, resolved").eq("resolved", false)).data ?? [],
   });
   const [mergeCandidate, setMergeCandidate] = useState<[Applicant, Applicant] | null>(null);
 
