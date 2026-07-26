@@ -3,12 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import {
-  Activity, CheckCircle2, AlertTriangle, Users, Database, RefreshCcw, GitBranch, ChevronRight, MapPin,
+  Activity, CheckCircle2, AlertTriangle, Users, Database, RefreshCcw, GitBranch, ChevronRight, MapPin, Github,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, CartesianGrid,
 } from "recharts";
-import { timeAgo, isValidEmail } from "@/lib/campus";
+import { timeAgo, isValidEmail, GITHUB_REPO_URL } from "@/lib/campus";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Overview — CampusContext" }, { name: "description", content: "Operational overview of connected data sources, applicant records, data quality and workflow health." }] }),
@@ -273,6 +273,25 @@ function GuidedDemoPanel() {
               </Link>
             </li>
           ))}
+          <li>
+            <a
+              href={GITHUB_REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-start gap-3 rounded-md border border-navy/30 bg-navy/5 p-3 hover:border-navy/60 hover:bg-navy/10 transition-colors h-full"
+            >
+              <span className="h-6 w-6 shrink-0 rounded-full bg-navy text-navy-foreground text-xs font-semibold grid place-items-center">{DEMO_STEPS.length + 1}</span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-navy flex items-center gap-1">
+                  View source on GitHub
+                  <Github className="h-3.5 w-3.5" />
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Inspect the file structure, schema migrations and agent tools behind the prototype.
+                </div>
+              </div>
+            </a>
+          </li>
         </ol>
       </CardContent>
     </Card>
