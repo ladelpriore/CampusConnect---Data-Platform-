@@ -5,13 +5,24 @@ The application file structure and codebase for the live demo prototype so you c
 - **Live demo:** https://campuscontext-core.lovable.app (use "Continue as demo user")
 - **Source:** https://github.com/ladelpriore/CampusConnect---Data-Platform-.git
 
-A focused Core Platform prototype for higher-education admissions teams — ingest, standardize, quality-check and expose applicant data to AI assistants under human control.
+CampusContext is a **Core Data & Integrations Platform** for higher education. It standardizes institution data and exposes trusted context to downstream CRM and agent applications.
 
 ## The customer problem
 
-Colleges have student and applicant data scattered across SIS, CRM, LMS and marketing systems. That fragmentation drives bad decisions, duplicated outreach and slow response to at-risk applicants — and it makes AI assistants unusable, because they can't reason over trusted data.
+Colleges have student and applicant data scattered across SIS, CRM, LMS and marketing systems. That fragmentation drives bad decisions, duplicated outreach and slow response to at-risk applicants — and it makes downstream AI CRM and agent applications unusable, because they can't reason over trusted data.
 
-CampusContext demonstrates a focused answer: unify feeds, resolve quality problems, run simple automations, and give an AI admissions assistant a **narrow, auditable set of tools** over that trusted context.
+CampusContext demonstrates the core-platform answer: canonical data model, integrations, pipelines, data quality, automation, insights and governance — with a simulated Agent Workspace (the Admissions Assistant) showing how a downstream consumer uses the platform.
+
+## Primary navigation
+
+1. **Overview** — platform KPIs, architecture and guided demo
+2. **Data Model** — Entities · Fields · Relationships · Data Quality · Lineage
+3. **Integrations** — Connections · APIs · Webhooks · Imports & Exports · Mappings
+4. **Pipelines** — Extract → Stage → Validate → Transform → Match → Load Canonical → Publish
+5. **Automation** — Workflows · Rules · Triggers & Actions · Execution History
+6. **Insights** — Quality, reliability, pipeline and workflow dashboards
+7. **Developer & Governance** — API Explorer · SQL · MongoDB · Audit · Access & Tenancy
+
 
 ## Product architecture
 
