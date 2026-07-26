@@ -1,8 +1,9 @@
 import { createFileRoute, Outlet, redirect, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  LayoutDashboard, Database, Upload, ShieldCheck, GitBranch, Sparkles, ScrollText, LogOut, Menu,
+  LayoutDashboard, Database, Upload, ShieldCheck, GitBranch, Sparkles, ScrollText, LogOut, Menu, Github,
 } from "lucide-react";
+import { GITHUB_REPO_URL } from "@/lib/campus";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
@@ -69,6 +70,14 @@ function AuthedLayout() {
           })}
         </nav>
         <div className="border-t border-white/10 p-3 space-y-2">
+          <a
+            href={GITHUB_REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-navy-foreground/70 hover:bg-white/5 hover:text-navy-foreground transition-colors"
+          >
+            <Github className="h-4 w-4" /> View source on GitHub
+          </a>
           <div className="px-2 text-xs">
             <div className="text-navy-foreground/50">Signed in as</div>
             <div className="truncate text-navy-foreground/90 font-medium">{user.email}</div>

@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Database } from "lucide-react";
+import { Database, Github } from "lucide-react";
+import { GITHUB_REPO_URL } from "@/lib/campus";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -123,6 +124,15 @@ function AuthPage() {
           <Button variant="outline" className="w-full" onClick={demoUser} disabled={loading}>
             Continue as demo user
           </Button>
+
+          <a
+            href={GITHUB_REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-navy transition-colors"
+          >
+            <Github className="h-3.5 w-3.5" /> View source on GitHub
+          </a>
 
           <p className="mt-6 text-sm text-muted-foreground text-center">
             {mode === "signin" ? "Need an account?" : "Have an account?"}{" "}

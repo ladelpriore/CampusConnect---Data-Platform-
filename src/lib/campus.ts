@@ -1,6 +1,8 @@
 // Shared helpers used across CampusContext pages.
 import { supabase } from "@/integrations/supabase/client";
 
+export const GITHUB_REPO_URL = "https://github.com/ladelpriore/CampusConnect-AI-CRM";
+
 export const CANONICAL_FIELDS = [
   "application_id",
   "first_name",
