@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  LayoutDashboard, Database, Upload, ShieldCheck, GitBranch, Sparkles, ScrollText, LogOut, Menu, Github,
+  LayoutDashboard, Boxes, PlugZap, Workflow, Cog, LineChart, Wrench, LogOut, Menu, Github, Database,
 } from "lucide-react";
 import { GITHUB_REPO_URL } from "@/lib/campus";
 import { useState } from "react";
@@ -21,12 +21,12 @@ export const Route = createFileRoute("/_authenticated")({
 
 const NAV = [
   { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { to: "/sources", label: "Data Sources", icon: Database },
-  { to: "/import", label: "Import & Mapping", icon: Upload },
-  { to: "/quality", label: "Data Quality", icon: ShieldCheck },
-  { to: "/workflows", label: "Workflows", icon: GitBranch },
-  { to: "/assistant", label: "Admissions Assistant", icon: Sparkles },
-  { to: "/audit", label: "Audit Log", icon: ScrollText },
+  { to: "/data-model", label: "Data Model", icon: Boxes },
+  { to: "/integrations", label: "Integrations", icon: PlugZap },
+  { to: "/pipelines", label: "Pipelines", icon: Workflow },
+  { to: "/automation", label: "Automation", icon: Cog },
+  { to: "/insights", label: "Insights", icon: LineChart },
+  { to: "/developer", label: "Developer & Governance", icon: Wrench },
 ] as const;
 
 function AuthedLayout() {
