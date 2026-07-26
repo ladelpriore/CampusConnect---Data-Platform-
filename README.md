@@ -1,5 +1,7 @@
 # CampusContext
 
+The application file structure and codebase for the live demo prototype so you can review and validate the technical architecture, logic, data modeling, and apis. 
+
 - **Live demo:** https://campuscontext-core.lovable.app (use "Continue as demo user")
 - **Source:** https://github.com/ladelpriore/CampusConnect---Data-Platform-.git
 
