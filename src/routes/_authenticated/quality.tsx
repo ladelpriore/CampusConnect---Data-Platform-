@@ -102,12 +102,41 @@ export function Quality() {
       subtitle="Review and resolve data issues to keep applicant profiles trusted."
       actions={<Button onClick={scanNow} variant="outline"><RefreshCcw className="h-4 w-4 mr-2" />Re-scan</Button>}
     >
-      <div className="grid gap-4 md:grid-cols-4">
-        <Metric label="Completeness (now)" value={`${analysis.completeness}%`} sub={previous ? `previous snapshot: ${previous.completeness_pct}%` : "no prior snapshot"} icon={ShieldCheck} accent="success" />
-        <Metric label="Duplicate rate" value={`${analysis.dupRate}%`} sub={previous ? `previous snapshot: ${previous.duplicate_rate_pct}%` : "no prior snapshot"} icon={Merge} accent="warning" />
-        <Metric label="Open issues" value={analysis.issues.length} icon={AlertTriangle} />
-        <Metric label="Trusted profiles" value={list.length} icon={ShieldCheck} accent="success" />
+      <div className="grid gap-4 md:grid-cols-5">
+        <Metric label="Validity" value={`${analysis.validityPct}%`} sub={`${analysis.validCount}/${list.length} rows pass validation rules`} icon={ShieldCheck} accent="success" />
+        <Metric label="Uniqueness" value={`${analysis.uniquenessPct}%`} sub={`${analysis.duplicates.length} open duplicate pair(s)`} icon={Merge} accent="warning" />
+        <Metric label="Referential integrity" value={`${analysis.refIntegrityPct}%`} sub={`${analysis.orphanCount} orphan validation error(s)`} icon={ShieldCheck} accent="success" />
+        <Metric label="Conformance" value={`${analysis.conformancePct}%`} sub={`${analysis.nonConformCount} status/term out-of-vocab`} icon={AlertTriangle} />
+        <Metric label="Freshness" value={analysis.freshnessLabel} sub="most recent applicant update" icon={RefreshCcw} accent="success" />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Quality rules</CardTitle>
+          <CardDescription>Rules the platform runs against every canonical applicant. Failures land in <span className="font-mono">validation_errors</span> and open duplicate matches.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="text-left px-4 py-2">Dimension</th>
+                <th className="text-left px-4 py-2">Rule</th>
+                <th className="text-right px-4 py-2">Failing</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analysis.rules.map((r) => (
+                <tr key={r.id} className="border-t">
+                  <td className="px-4 py-2"><span className="text-xs px-2 py-0.5 rounded-full border bg-muted">{r.dimension}</span></td>
+                  <td className="px-4 py-2 text-xs">{r.rule}</td>
+                  <td className={"px-4 py-2 text-right font-medium " + (r.failing > 0 ? "text-orange" : "text-success")}>{r.failing}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader>
