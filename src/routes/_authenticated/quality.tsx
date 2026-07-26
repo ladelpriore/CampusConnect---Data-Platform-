@@ -25,11 +25,18 @@ export function Quality() {
   });
   const { data: snapshots } = useQuery({
     queryKey: ["quality-snapshots"],
-    queryFn: async () => (await supabase.from("quality_snapshots").select("*").order("taken_at", { ascending: false }).limit(10)).data ?? [],
+    queryFn: async () => (await supabase.from("quality_snapshots").select("*").order("created_at", { ascending: false }).limit(10)).data ?? [],
+  });
+  const { data: validationErrors } = useQuery({
+    queryKey: ["quality-validation-errors"],
+    queryFn: async () => (await supabase.from("validation_errors").select("id, kind, applicant_id, resolved")).data ?? [],
   });
   const [mergeCandidate, setMergeCandidate] = useState<[Applicant, Applicant] | null>(null);
 
-  const analysis = useMemo(() => analyze(applicants ?? []), [applicants]);
+  const analysis = useMemo(
+    () => analyze(applicants ?? [], (validationErrors ?? []) as { kind: string; applicant_id: string | null; resolved: boolean }[]),
+    [applicants, validationErrors],
+  );
   const previous = snapshots?.[0];
 
   async function saveSnapshot(trigger: string, note?: string, override?: { completeness: number; dupRate: number }) {
@@ -84,7 +91,7 @@ export function Quality() {
     await refetch();
     // Recompute after refetch and record post-merge snapshot
     const { data: fresh } = await supabase.from("applicants").select("*").is("merged_into", null);
-    const post = analyze((fresh as Applicant[]) ?? []);
+    const post = analyze((fresh as Applicant[]) ?? [], []);
     await saveSnapshot("post_merge", `merged ${drop.application_id ?? drop.id} → ${keep.application_id ?? keep.id}`, { completeness: post.completeness, dupRate: post.dupRate });
     await qc.invalidateQueries();
     toast.success("Applicants merged — quality snapshot recorded");
@@ -98,12 +105,41 @@ export function Quality() {
       subtitle="Review and resolve data issues to keep applicant profiles trusted."
       actions={<Button onClick={scanNow} variant="outline"><RefreshCcw className="h-4 w-4 mr-2" />Re-scan</Button>}
     >
-      <div className="grid gap-4 md:grid-cols-4">
-        <Metric label="Completeness (now)" value={`${analysis.completeness}%`} sub={previous ? `previous snapshot: ${previous.completeness_pct}%` : "no prior snapshot"} icon={ShieldCheck} accent="success" />
-        <Metric label="Duplicate rate" value={`${analysis.dupRate}%`} sub={previous ? `previous snapshot: ${previous.duplicate_rate_pct}%` : "no prior snapshot"} icon={Merge} accent="warning" />
-        <Metric label="Open issues" value={analysis.issues.length} icon={AlertTriangle} />
-        <Metric label="Trusted profiles" value={list.length} icon={ShieldCheck} accent="success" />
+      <div className="grid gap-4 md:grid-cols-5">
+        <Metric label="Validity" value={`${analysis.validityPct}%`} sub={`${analysis.validCount}/${list.length} rows pass validation rules`} icon={ShieldCheck} accent="success" />
+        <Metric label="Uniqueness" value={`${analysis.uniquenessPct}%`} sub={`${analysis.duplicates.length} open duplicate pair(s)`} icon={Merge} accent="warning" />
+        <Metric label="Referential integrity" value={`${analysis.refIntegrityPct}%`} sub={`${analysis.orphanCount} orphan validation error(s)`} icon={ShieldCheck} accent="success" />
+        <Metric label="Conformance" value={`${analysis.conformancePct}%`} sub={`${analysis.nonConformCount} status/term out-of-vocab`} icon={AlertTriangle} />
+        <Metric label="Freshness" value={analysis.freshnessLabel} sub="most recent applicant update" icon={RefreshCcw} accent="success" />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Quality rules</CardTitle>
+          <CardDescription>Rules the platform runs against every canonical applicant. Failures land in <span className="font-mono">validation_errors</span> and open duplicate matches.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="text-left px-4 py-2">Dimension</th>
+                <th className="text-left px-4 py-2">Rule</th>
+                <th className="text-right px-4 py-2">Failing</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analysis.rules.map((r) => (
+                <tr key={r.id} className="border-t">
+                  <td className="px-4 py-2"><span className="text-xs px-2 py-0.5 rounded-full border bg-muted">{r.dimension}</span></td>
+                  <td className="px-4 py-2 text-xs">{r.rule}</td>
+                  <td className={"px-4 py-2 text-right font-medium " + (r.failing > 0 ? "text-orange" : "text-success")}>{r.failing}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader>
@@ -295,19 +331,29 @@ function MergeDialog({ pair, onClose, onMerge }: { pair: [Applicant, Applicant] 
   );
 }
 
-function analyze(apps: Applicant[]) {
+const ALLOWED_STATUSES = ["Submitted", "Incomplete", "Admitted", "Waitlisted", "Denied"];
+const TERM_RE = /^(Fall|Spring|Summer)\s+20\d{2}$/;
+
+function analyze(apps: Applicant[], vErrors: { kind: string; applicant_id: string | null; resolved: boolean }[]) {
   const fields = ["application_id", "first_name", "last_name", "email", "application_status", "enrollment_term"];
   let filled = 0;
   const issues: { kind: string; applicant: Applicant }[] = [];
+  let invalidEmail = 0;
+  let missingName = 0;
+  let missingAppId = 0;
+  let badStatus = 0;
+  let badTerm = 0;
   apps.forEach((a) => {
     fields.forEach((f) => {
       const v = (a as never as Record<string, unknown>)[f];
       if (v && (typeof v !== "string" || v.trim())) filled++;
     });
-    if (!a.application_id) issues.push({ kind: "missing application_id", applicant: a });
+    if (!a.application_id) { issues.push({ kind: "missing application_id", applicant: a }); missingAppId++; }
     if (!a.email) issues.push({ kind: "missing email", applicant: a });
-    else if (!isValidEmail(a.email)) issues.push({ kind: "invalid email", applicant: a });
-    if (!a.first_name || !a.last_name) issues.push({ kind: "missing name", applicant: a });
+    else if (!isValidEmail(a.email)) { issues.push({ kind: "invalid email", applicant: a }); invalidEmail++; }
+    if (!a.first_name || !a.last_name) { issues.push({ kind: "missing name", applicant: a }); missingName++; }
+    if (a.application_status && !ALLOWED_STATUSES.includes(a.application_status)) { issues.push({ kind: "status not in vocabulary", applicant: a }); badStatus++; }
+    if (a.enrollment_term && !TERM_RE.test(a.enrollment_term)) { issues.push({ kind: "enrollment_term not canonical", applicant: a }); badTerm++; }
   });
   const total = apps.length * fields.length;
   const completeness = total ? Math.round((filled / total) * 100) : 0;
@@ -316,12 +362,8 @@ function analyze(apps: Applicant[]) {
   const byAppId = new Map<string, Applicant[]>();
   const byEmail = new Map<string, Applicant[]>();
   apps.forEach((a) => {
-    if (a.application_id) {
-      const arr = byAppId.get(a.application_id) ?? []; arr.push(a); byAppId.set(a.application_id, arr);
-    }
-    if (a.normalized_email) {
-      const arr = byEmail.get(a.normalized_email) ?? []; arr.push(a); byEmail.set(a.normalized_email, arr);
-    }
+    if (a.application_id) { const arr = byAppId.get(a.application_id) ?? []; arr.push(a); byAppId.set(a.application_id, arr); }
+    if (a.normalized_email) { const arr = byEmail.get(a.normalized_email) ?? []; arr.push(a); byEmail.set(a.normalized_email, arr); }
   });
   const duplicates: { a: Applicant; b: Applicant; reason: string }[] = [];
   const seen = new Set<string>();
@@ -331,7 +373,6 @@ function analyze(apps: Applicant[]) {
         const key = [arr[i].id, arr[j].id].sort().join("|");
         if (seen.has(key)) continue;
         seen.add(key);
-        // extra: detect conflicting status when same application_id and different status
         let r = reason;
         if (reason === "same application_id" && arr[i].application_status !== arr[j].application_status) r = "conflicting status";
         duplicates.push({ a: arr[i], b: arr[j], reason: r });
@@ -342,5 +383,49 @@ function analyze(apps: Applicant[]) {
   byEmail.forEach((arr) => { if (arr.length > 1) push(arr, "same normalized email"); });
 
   const dupRate = apps.length ? Math.round((duplicates.length / apps.length) * 100) : 0;
-  return { completeness, dupRate, issues, duplicates };
+
+  // Quality dimensions
+  const applicantIds = new Set(apps.map((a) => a.id));
+  const openErrors = vErrors.filter((v) => !v.resolved);
+  const orphanCount = openErrors.filter((v) => v.applicant_id && !applicantIds.has(v.applicant_id)).length;
+  const validCount = apps.filter((a) => isValidEmail(a.email) && a.application_id && a.first_name && a.last_name).length;
+  const validityPct = apps.length ? Math.round((validCount / apps.length) * 100) : 100;
+  const uniqueParticipants = new Set<string>();
+  duplicates.forEach((d) => { uniqueParticipants.add(d.a.id); uniqueParticipants.add(d.b.id); });
+  const uniquenessPct = apps.length ? Math.round(((apps.length - uniqueParticipants.size) / apps.length) * 100) : 100;
+  const refIntegrityPct = openErrors.length ? Math.round(((openErrors.length - orphanCount) / openErrors.length) * 100) : 100;
+  const nonConformCount = badStatus + badTerm;
+  const conformancePct = apps.length ? Math.round(((apps.length * 2 - nonConformCount) / (apps.length * 2)) * 100) : 100;
+
+  const latest = apps.reduce<number>((m, a) => {
+    const t = a && (a as unknown as { updated_at?: string }).updated_at ? Date.parse((a as unknown as { updated_at: string }).updated_at) : 0;
+    return t > m ? t : m;
+  }, 0);
+  const freshnessLabel = latest ? relTime(latest) : "—";
+
+  const rules = [
+    { id: "email_format", dimension: "Validity", rule: "Email matches expected format", failing: invalidEmail },
+    { id: "required_name", dimension: "Validity", rule: "First and last name are present", failing: missingName },
+    { id: "required_appid", dimension: "Validity", rule: "application_id is present", failing: missingAppId },
+    { id: "status_vocab", dimension: "Conformance", rule: "application_status ∈ {" + ALLOWED_STATUSES.join(", ") + "}", failing: badStatus },
+    { id: "term_format", dimension: "Conformance", rule: "enrollment_term matches ‘<Season> <YYYY>’", failing: badTerm },
+    { id: "uniqueness_appid", dimension: "Uniqueness", rule: "application_id is unique within an institution", failing: duplicates.filter((d) => d.reason.includes("application_id") || d.reason === "conflicting status").length },
+    { id: "uniqueness_email", dimension: "Uniqueness", rule: "normalized_email does not repeat across trusted applicants", failing: duplicates.filter((d) => d.reason.includes("email")).length },
+    { id: "ref_ve", dimension: "Referential integrity", rule: "validation_errors.applicant_id references an existing applicant", failing: orphanCount },
+    { id: "freshness_syncs", dimension: "Freshness", rule: "Applicant records have been updated within the last 30 days", failing: apps.filter((a) => {
+      const u = (a as unknown as { updated_at?: string }).updated_at;
+      return u ? Date.now() - Date.parse(u) > 30 * 24 * 3600 * 1000 : true;
+    }).length },
+  ];
+
+  return { completeness, dupRate, issues, duplicates, validCount, validityPct, uniquenessPct, refIntegrityPct, orphanCount, conformancePct, nonConformCount, freshnessLabel, rules };
 }
+
+function relTime(ts: number) {
+  const s = Math.max(1, Math.floor((Date.now() - ts) / 1000));
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60); if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24); return `${d}d ago`;
+}
+
