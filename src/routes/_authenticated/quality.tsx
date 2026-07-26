@@ -29,11 +29,14 @@ export function Quality() {
   });
   const { data: validationErrors } = useQuery({
     queryKey: ["quality-validation-errors"],
-    queryFn: async () => (await supabase.from("validation_errors").select("id, kind, resolved").eq("resolved", false)).data ?? [],
+    queryFn: async () => (await supabase.from("validation_errors").select("id, kind, applicant_id, resolved")).data ?? [],
   });
   const [mergeCandidate, setMergeCandidate] = useState<[Applicant, Applicant] | null>(null);
 
-  const analysis = useMemo(() => analyze(applicants ?? []), [applicants]);
+  const analysis = useMemo(
+    () => analyze(applicants ?? [], (validationErrors ?? []) as { kind: string; applicant_id: string | null; resolved: boolean }[]),
+    [applicants, validationErrors],
+  );
   const previous = snapshots?.[0];
 
   async function saveSnapshot(trigger: string, note?: string, override?: { completeness: number; dupRate: number }) {
