@@ -1,7 +1,7 @@
 # CampusContext
 
 - **Live demo:** https://campuscontext-core.lovable.app (use "Continue as demo user")
-- **Source:** https://github.com/ladelpriore/CampusConnect-AI-CRM
+- **Source:** https://github.com/ladelpriore/CampusConnect---Data-Platform-.git
 
 A focused Core Platform prototype for higher-education admissions teams — ingest, standardize, quality-check and expose applicant data to AI assistants under human control.
 
