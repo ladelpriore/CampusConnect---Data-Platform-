@@ -1,24 +1,34 @@
+# Sync CampusContext to GitHub
 
-Repo URL locked in: **https://github.com/ladelpriore/CampusConnect-AI-CRM**
+## Goal
+Connect the Lovable editor to the existing GitHub repository `https://github.com/ladelpriore/CampusConnect-AI-CRM.git` so the prototype code is synced, and make sure the demo dashboard points recruiters to that repo.
 
-## Changes I'll make
+## What you need to do in the Lovable editor
 
-1. **`src/lib/campus.ts`** — export a `GITHUB_REPO_URL` constant so every link uses one source of truth.
+1. Open the editor for this CampusContext project.
+2. Click the **Plus (+)** button in the chat input (bottom-left).
+3. Choose **GitHub → Connect project**.
+4. Authorize the Lovable GitHub App when prompted.
+5. Select your GitHub account/organization.
+6. Choose **Use an existing repository** and enter/pick `CampusConnect-AI-CRM`.
+   - If Lovable only shows “Create repository,” create a new one and later rename or transfer it to match the existing repo, or open the existing repo settings and point it to the new Lovable-generated repo.
+7. Click **Connect** / **Sync**. Lovable will push the current project files and enable two-way sync.
 
-2. **`src/routes/_authenticated/route.tsx`** — add a **"View source on GitHub"** row in the sidebar footer, above the "Signed in as / Sign out" block. GitHub icon from `lucide-react`, `target="_blank"`, `rel="noopener noreferrer"`.
+## What I will do after you connect
 
-3. **`src/routes/_authenticated/dashboard.tsx`** — extend the Guided Demo panel with a final step **"7. View the source code"** linking to the repo, so a recruiter who follows the walkthrough lands on the code. Uses the same numbered-card styling as the existing 6 steps but with an external-link icon.
+1. Verify all GitHub links in the codebase point to the correct repository:
+   - `src/routes/_authenticated/route.tsx` (sidebar footer)
+   - `src/routes/_authenticated/dashboard.tsx` (Guided Demo panel step 7)
+   - `src/routes/auth.tsx` (auth page footer)
+   - `README.md` (repo badge and link)
+2. Update any links that still reference the old placeholder or a different URL.
+3. Confirm the dashboard still shows the **Continue as demo user** flow and the GitHub link opens the repo in a new tab.
+4. Run a type-check to make sure the link changes don’t break the build.
 
-4. **`src/routes/auth.tsx`** — add a small "View source on GitHub" link under the "Continue as demo user" button so visitors who don't sign in can still reach the repo.
+## Outcome
 
-5. **`README.md`** — add a short header block at the top:
-   - Live demo: https://campuscontext-core.lovable.app
-   - Source: https://github.com/ladelpriore/CampusConnect-AI-CRM
+Recruiters using the public demo can click through the dashboard, see the GitHub link in the Guided Demo panel/sidebar, and view the actual source code and project structure.
 
-## What I won't touch
+## Next step
 
-Schema, auth, business logic, existing enterprise design, sidebar structure, seed data, workflows, or the guided demo's existing 6 steps.
-
-## Verification
-
-After edits: `tsgo --noEmit` for typecheck, then a quick preview screenshot pass on `/auth` and `/dashboard` to confirm the links render and open in a new tab.
+Go ahead and connect GitHub in the editor, then reply here once it’s done. I’ll immediately verify and update the in-app links.
