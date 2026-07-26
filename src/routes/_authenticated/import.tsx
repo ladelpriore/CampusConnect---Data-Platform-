@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/import")({
   component: Importer,
 });
 
-function Importer() {
+export function Importer() {
   const qc = useQueryClient();
   const [csv, setCsv] = useState<{ headers: string[]; rows: string[][]; fileName: string } | null>(null);
   const [mapping, setMapping] = useState<Record<string, CanonicalField | "">>({});

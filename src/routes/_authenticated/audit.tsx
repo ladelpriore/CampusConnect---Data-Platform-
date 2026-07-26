@@ -25,7 +25,7 @@ const ACTION_COLORS: Record<string, string> = {
   "quality.scan": "bg-navy/10 text-navy border-navy/30",
 };
 
-function Audit() {
+export function Audit() {
   const { data } = useQuery({
     queryKey: ["audit"],
     queryFn: async () => (await supabase.from("audit_events").select("*").order("created_at", { ascending: false }).limit(500)).data ?? [],

@@ -78,15 +78,15 @@ function AuthPage() {
           <span className="text-lg font-semibold tracking-tight">CampusContext</span>
         </div>
         <div className="space-y-6 max-w-md">
-          <h1 className="text-3xl font-semibold leading-tight">Agent-ready admissions data, without the plumbing.</h1>
+          <h1 className="text-3xl font-semibold leading-tight">Core data and integrations platform for higher education.</h1>
           <p className="text-sm text-navy-foreground/70 leading-relaxed">
-            Unify data from your SIS, CRM and marketing tools. Resolve duplicates and missing fields. Give AI assistants controlled, auditable access to trusted applicant context.
+            Standardize institution data and expose trusted context to CRM and agent applications. Ingest from SIS, CRM, LMS and marketing systems; resolve, govern and publish canonical entities downstream.
           </p>
           <ul className="space-y-2 text-sm text-navy-foreground/80">
-            <li>• Standardized applicant profiles</li>
-            <li>• Data-quality review queues</li>
-            <li>• Human-in-the-loop workflow automation</li>
-            <li>• Auditable AI assistant tools</li>
+            <li>• Canonical data model with lineage</li>
+            <li>• Integrations, pipelines and data quality</li>
+            <li>• Automation and governance</li>
+            <li>• Powers downstream AI CRM and agent workspaces</li>
           </ul>
         </div>
         <p className="text-xs text-navy-foreground/50">Prototype — synthetic data only. Not for production use.</p>
@@ -101,7 +101,7 @@ function AuthPage() {
             <span className="font-semibold">CampusContext</span>
           </div>
           <h2 className="text-2xl font-semibold text-foreground">{mode === "signin" ? "Sign in" : "Create account"}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Enrollment operations console</p>
+          <p className="mt-1 text-sm text-muted-foreground">Core data & integrations platform</p>
 
           <form onSubmit={handle} className="mt-6 space-y-4">
             <div>
