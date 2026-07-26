@@ -98,11 +98,6 @@ CREATE TABLE public.applicants (
 CREATE INDEX applicants_norm_email_idx ON public.applicants(normalized_email);
 ALTER TABLE public.applicants ENABLE ROW LEVEL SECURITY;`;
 
-const SAMPLE_QUERIES = [
-  { title: "Trusted applicant count", sql: "SELECT count(*) FROM applicants WHERE merged_into IS NULL;" },
-  { title: "Duplicate rate", sql: "SELECT count(*) FROM duplicate_matches WHERE resolved = false;" },
-  { title: "Failing integrations", sql: "SELECT name, failed_records FROM data_sources WHERE failed_records > 0 ORDER BY failed_records DESC;" },
-];
 
 function SqlTab() {
   return (
