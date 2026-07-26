@@ -19,7 +19,7 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   sis: Server, crm: Database, marketing: Megaphone,
 };
 
-function Sources() {
+export function Sources() {
   const qc = useQueryClient();
   const [detail, setDetail] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
