@@ -91,7 +91,7 @@ export function Quality() {
     await refetch();
     // Recompute after refetch and record post-merge snapshot
     const { data: fresh } = await supabase.from("applicants").select("*").is("merged_into", null);
-    const post = analyze((fresh as Applicant[]) ?? []);
+    const post = analyze((fresh as Applicant[]) ?? [], []);
     await saveSnapshot("post_merge", `merged ${drop.application_id ?? drop.id} → ${keep.application_id ?? keep.id}`, { completeness: post.completeness, dupRate: post.dupRate });
     await qc.invalidateQueries();
     toast.success("Applicants merged — quality snapshot recorded");
