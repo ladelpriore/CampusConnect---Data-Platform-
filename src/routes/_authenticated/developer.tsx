@@ -4,6 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Audit } from "./audit";
 import { Info } from "lucide-react";
+import { SqlWorkbench } from "@/components/sql-workbench";
 
 export const Route = createFileRoute("/_authenticated/developer")({
   head: () => ({
@@ -21,7 +22,7 @@ function DeveloperPage() {
       <Tabs defaultValue="api">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="api">API Explorer</TabsTrigger>
-          <TabsTrigger value="sql">SQL</TabsTrigger>
+          <TabsTrigger value="sql">SQL Workbench</TabsTrigger>
           <TabsTrigger value="mongo">MongoDB</TabsTrigger>
           <TabsTrigger value="audit">Audit</TabsTrigger>
           <TabsTrigger value="access">Access & Tenancy</TabsTrigger>
@@ -106,21 +107,19 @@ const SAMPLE_QUERIES = [
 function SqlTab() {
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader><CardTitle>Schema (PostgreSQL)</CardTitle><CardDescription>Live backend DDL summary for the canonical <span className="font-mono">applicants</span> entity.</CardDescription></CardHeader>
-        <CardContent><pre className="text-xs bg-muted/50 rounded p-3 overflow-auto">{DDL}</pre></CardContent>
-      </Card>
-      <Card>
-        <CardHeader><CardTitle>Sample queries</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {SAMPLE_QUERIES.map((q) => (
-            <div key={q.title}>
-              <div className="text-xs uppercase text-muted-foreground mb-1">{q.title}</div>
-              <pre className="text-xs bg-muted/50 rounded p-3 overflow-auto">{q.sql}</pre>
-            </div>
-          ))}
+      <Card className="border-dashed border-navy/30 bg-navy/5">
+        <CardContent className="p-4 flex items-start gap-3 text-sm">
+          <Info className="h-4 w-4 text-navy mt-0.5 shrink-0" />
+          <div className="text-muted-foreground text-xs">
+            The workbench displays the exact PostgreSQL a production deployment would run and executes an equivalent typed Supabase read against this prototype's live data. Non-SELECT keywords are blocked before execution. Each query is version-controlled — click the filename to open it on GitHub.
+          </div>
         </CardContent>
       </Card>
+      <Card>
+        <CardHeader><CardTitle>Schema reference (PostgreSQL)</CardTitle><CardDescription>Live backend DDL for the canonical <span className="font-mono">applicants</span> entity.</CardDescription></CardHeader>
+        <CardContent><pre className="text-xs bg-muted/50 rounded p-3 overflow-auto max-h-56">{DDL}</pre></CardContent>
+      </Card>
+      <SqlWorkbench />
     </div>
   );
 }
